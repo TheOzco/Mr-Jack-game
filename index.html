@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بازی استنتاجی آنلاین 2 نفره</title>
+    <!-- تضمین اتصال PeerJS از طریق CDN -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        body { font-family: Tahoma, sans-serif; background: #1e1e2e; color: #fff; text-align: center; margin: 0; padding: 20px; }
+        .card { background: #2b2b3b; max-width: 500px; margin: 0 auto; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        input, button { padding: 10px 15px; margin: 5px; font-size: 16px; border-radius: 6px; border: none; }
+        button { background: #6c5ce7; color: white; cursor: pointer; transition: 0.2s; }
+        button:hover { background: #a29bfe; }
+        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 20px 0; }
+        .cell { aspect-ratio: 1; background: #3b3b4f; display: flex; align-items: center; justify-content: center; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; }
+        .cell.revealed { background: #00b894; }
+        .cell.jack { background: #d63031; }
+        .status { margin: 15px 0; font-size: 18px; color: #fdcb6e; }
+        #game-board { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>🕵️‍♂️ بازی استنتاج آنلاین (نسخه وب)</h2>
+    
+    <!-- بخش اتصال آنلاین -->
+    <div id="setup">
+        <p>آیدی شما: <strong id="my-id" style="color: #00cec9;">در حال دریافت...</strong></p>
+        <button onclick="createGame()">ایجاد اتاق (میزبان)</button>
+        <hr style="border-color: #444;">
+        <input type="text" id="join-id" placeholder="کد اتصال دوستتان">
+        <button onclick="joinGame()">ورود به اتاق</button>
+    </div>
+
+    <!-- صفحه اصلی بازی -->
+    <div id="game-board">
+        <div class="status" id="status-text">منتظر شروع...</div>
+        <div class="grid" id="board"></div>
+        <p id="role-text"></p>
+    </div>
+</div>
+
+<script>
+    let peer, conn;
+    let myRole = ''; // 'jack' or 'detective'
+    let isMyTurn = false;
+    let targetCell = Math.floor(Math.random() * 25); // خانه‌ای که جک در آن مخفی شده
+
+    // راه اندازی PeerJS
+    peer = new Peer();
+
+    peer.on('open', id => {
+        document.getElementById('my-id').innerText = id;
+    });
+
+    peer.on('connection', connection => {
+        conn = connection;
+        setupReceiver();
+        // فردی که متصل شده میزبانی را پذیرفته -> میزبان کارآگاه می‌شود
+        myRole = 'detective';
+        startGame(false);
+    });
+
+    function createGame() {
+        alert("کد اتصال شما بالا نوشته شده است. آن را برای دوستتان بفرستید.");
+    }
+
+    function joinGame() {
+        const friendId = document.getElementById('join-id').value.trim();
+        if(!friendId) return alert("لطفا کد را وارد کنید");
+        
+        conn = peer.connect(friendId);
+        setupReceiver();
+        // فردی که متصل می‌شود جک است
+        myRole = 'jack';
+        startGame(true);
+    }
+
+    function setupReceiver() {
+        conn.on('data', data => {
+            handleIncomingData(data);
+        });
+        conn.on('open', () => {
+            document.getElementById('setup').style.display = 'none';
+            document.getElementById('game-board').style.display = 'block';
+        });
+    }
+
+    function startGame(myTurn) {
+        document.getElementById('setup').style.display = 'none';
+        document.getElementById('game-board').style.display = 'block';
+        
+        isMyTurn = myTurn;
+        document.getElementById('role-text').innerText = myRole === 'jack' ? "نقش شما: 🥷 جک (مخفی شوید)" : "نقش شما: 🔍 کارآگاه (جک را پیدا کنید)";
+        
+        updateStatus();
+        renderBoard();
+    }
+
+    function renderBoard() {
+        const board = document.getElementById('board');
+        board.innerHTML = '';
+        for(let i = 0; i < 25; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.innerText = i + 1;
+            cell.onclick = () => makeMove(i);
+            board.appendChild(cell);
+        }
+    }
+
+    function makeMove(index) {
+        if(!isMyTurn) return alert("نوبت شما نیست!");
+        
+        // ارسال حرکت به بازیکن مقابل
+        conn.send({ type: 'MOVE', index: index, player: myRole });
+        processMove(index, myRole);
+        
+        isMyTurn = false;
+        updateStatus();
+    }
+
+    function handleIncomingData(data) {
+        if(data.type === 'MOVE') {
+            processMove(data.index, data.player);
+            isMyTurn = true;
+            updateStatus();
+        }
+    }
+
+    function processMove(index, player) {
+        const cells = document.getElementsByClassName('cell');
+        if(index === targetCell) {
+            cells[index].classList.add('jack');
+            cells[index].innerText = '🎯';
+            document.getElementById('status-text').innerText = player === 'detective' ? "🔍 کارآگاه جک را پیدا کرد! (کارآگاه برنده شد)" : "🥷 جک لو رفت!";
+            isMyTurn = false;
+        } else {
+            cells[index].classList.add('revealed');
+            cells[index].innerText = '❌';
+        }
+    }
+
+    function updateStatus() {
+        if(document.getElementById('status-text').innerText.includes('برنده')) return;
+        document.getElementById('status-text').innerText = isMyTurn ? "🟢 نوبت شماست" : "🔴 نوبت حریف است...";
+    }
+</script>
+</body>
+</html>
