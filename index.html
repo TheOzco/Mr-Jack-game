@@ -3,428 +3,298 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مستر جک - نسخه بردگیم دیجتالی</title>
+    <title>مستر جک - نقشه وایت‌چپل ۱۸۸۸</title>
     <style>
         :root {
-            --bg-main: #0f111a;
-            --panel-bg: #1a1d28;
-            --accent-gold: #f39c12;
-            --accent-red: #e74c3c;
-            --accent-blue: #3498db;
-            --text-light: #ecf0f1;
-            --board-dark: #252936;
-            --board-light: #343a40;
+            --bg-dark: #090a0f;
+            --panel-bg: rgba(22, 26, 38, 0.95);
+            --gold: #d4af37;
+            --crimson: #900c3f;
+            --street-dark: #1a1c23;
+            --street-light: #2c2f3d;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-main);
-            color: var(--text-light);
+            font-family: 'Georgia', serif;
+            background: var(--bg-dark);
+            color: #e0e0e0;
             display: flex;
             height: 100vh;
             overflow: hidden;
+            background-image: radial-gradient(circle at center, #141722 0%, #050608 100%);
         }
 
-        /* پنل سمت راست (کنترل و اطلاعات) */
+        /* پنل ابزار و اطلاعات */
         .sidebar {
             width: 320px;
             background: var(--panel-bg);
-            border-left: 2px solid #2c3142;
+            border-left: 2px solid var(--gold);
             padding: 20px;
             display: flex;
             flex-direction: column;
-            gap: 15px;
-            box-shadow: -5px 0 20px rgba(0,0,0,0.5);
-            z-index: 10;
+            gap: 20px;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
         }
 
-        .logo {
+        .title-box {
             text-align: center;
-            font-size: 22px;
-            font-weight: bold;
-            color: var(--accent-gold);
-            text-shadow: 0 0 10px rgba(243, 156, 18, 0.3);
-            border-bottom: 1px solid #2c3142;
+            border-bottom: 2px dashed #444;
             padding-bottom: 15px;
         }
 
-        .status-card {
-            background: #222634;
-            padding: 12px;
-            border-radius: 8px;
-            border-right: 4px solid var(--accent-blue);
+        .title-box h1 {
+            font-size: 24px;
+            color: var(--gold);
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
         }
 
-        .turn-info {
+        /* نقشه بازی */
+        .map-wrapper {
+            flex: 1;
             display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-            margin-bottom: 5px;
+            align-items: center;
+            justify-content: center;
+            position: relative;
         }
 
-        .btn {
-            background: var(--accent-gold);
-            color: #000;
+        .board-container {
+            position: relative;
+            padding: 25px;
+            background: #111319;
+            border-radius: 16px;
+            border: 4px solid #332a1d;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.9), inset 0 0 100px rgba(0,0,0,0.8);
+        }
+
+        .grid-map {
+            display: grid;
+            grid-template-columns: repeat(6, 95px);
+            grid-template-rows: repeat(6, 95px);
+            gap: 8px;
+            position: relative;
+        }
+
+        /* کاشی‌های خیابان */
+        .tile {
+            background-color: var(--street-dark);
+            border-radius: 8px;
+            position: relative;
+            border: 1px solid #2a2d3d;
+            background-image: 
+                radial-gradient(rgba(255,255,255,0.03) 1px, transparent 0);
+            background-size: 8px 8px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .tile:hover {
+            border-color: var(--gold);
+            box-shadow: inset 0 0 15px rgba(212, 175, 55, 0.2);
+        }
+
+        /* حالت روشنایی چراغ گازی */
+        .tile.lamp-lit {
+            background-color: #2b281e;
+            border-color: #f39c12;
+            box-shadow: 0 0 20px rgba(243, 156, 18, 0.25), inset 0 0 25px rgba(243, 156, 18, 0.15);
+        }
+
+        /* افکت مه لندن روی خانه‌های تاریک */
+        .tile.foggy::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 12, 18, 0.65);
+            backdrop-filter: blur(2px);
+            pointer-events: none;
+        }
+
+        /* نماد چراغ گازی خیابان */
+        .gas-lamp {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 16px;
+            height: 16px;
+            background: #f1c40f;
+            border-radius: 50%;
+            box-shadow: 0 0 12px #f1c40f;
+            z-index: 3;
+        }
+
+        /* مهره‌های پرتره‌دار با ظاهر چوبی/فلزی */
+        .character-token {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 5;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.8), inset 0 2px 4px rgba(255,255,255,0.4);
+            border: 3px solid #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .character-token:hover {
+            transform: translate(-50%, -55%) scale(1.08);
+            box-shadow: 0 12px 20px rgba(0,0,0,0.9), 0 0 15px var(--gold);
+        }
+
+        .character-token.cleared {
+            filter: grayscale(100%) brightness(0.5);
+            opacity: 0.4;
+        }
+
+        .character-token.selected {
+            border-color: var(--gold);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.7); }
+            70% { box-shadow: 0 0 0 12px rgba(212, 175, 55, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); }
+        }
+
+        /* راهنما و دکمه‌ها */
+        .btn-action {
+            background: linear-gradient(135deg, #c0392b, #8e44ad);
+            color: white;
             border: none;
             padding: 12px;
             border-radius: 6px;
+            font-family: inherit;
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.2s;
-            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            transition: 0.2s;
         }
 
-        .btn:hover {
+        .btn-action:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(243, 156, 18, 0.4);
-        }
-
-        .btn-witness {
-            background: var(--accent-red);
-            color: white;
-        }
-        .btn-witness:hover {
-            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
-        }
-
-        /* بخش اصلی بازی */
-        .game-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            position: relative;
-        }
-
-        /* صفحه بازی (Board) */
-        .board {
-            display: grid;
-            grid-template-columns: repeat(6, 90px);
-            grid-template-rows: repeat(6, 90px);
-            gap: 6px;
-            background: #151722;
-            padding: 12px;
-            border-radius: 12px;
-            border: 3px solid #2c3142;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.7);
-        }
-
-        .cell {
-            background: var(--board-dark);
-            border-radius: 8px;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: 0.2s;
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .cell:hover {
-            border-color: var(--accent-gold);
-            background: #2d3243;
-        }
-
-        .cell.lit {
-            background: radial-gradient(circle, #4a4325 0%, #252936 100%);
-            border-color: rgba(243, 156, 18, 0.4);
-        }
-
-        /* نشانگر چراغ گازی */
-        .lamp-icon {
-            position: absolute;
-            top: 4px;
-            right: 4px;
-            font-size: 12px;
-            opacity: 0.8;
-        }
-
-        /* مهره‌های شخصیت‌ها */
-        .token {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            font-weight: bold;
-            color: white;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.6);
-            border: 2px solid white;
-            transition: transform 0.2s;
-            z-index: 2;
-        }
-
-        .token:hover { transform: scale(1.1); }
-        .token.selected { border-color: var(--accent-gold); box-shadow: 0 0 15px var(--accent-gold); }
-        .token.cleared { opacity: 0.25; filter: grayscale(100%); }
-
-        /* کارت‌های شخصیت در پایین صفحه */
-        .character-cards {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .card {
-            width: 80px;
-            height: 110px;
-            background: #222634;
-            border: 2px solid #343a40;
-            border-radius: 6px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            cursor: pointer;
-            text-align: center;
-            padding: 5px;
-            transition: 0.2s;
-        }
-
-        .card:hover { border-color: var(--accent-gold); transform: translateY(-5px); }
-        .card.used { opacity: 0.3; pointer-events: none; }
-
-        /* مدال راز جک */
-        .secret-modal {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-        }
-
-        .modal-content {
-            background: var(--panel-bg);
-            padding: 30px;
-            border-radius: 12px;
-            text-align: center;
-            border: 2px solid var(--accent-gold);
-            max-width: 400px;
+            box-shadow: 0 6px 20px rgba(192, 57, 43, 0.5);
         }
     </style>
 </head>
 <body>
 
-    <!-- پنل مدیریت جانب -->
     <div class="sidebar">
-        <div class="logo">🕵️‍♂️ MR. JACK</div>
-
-        <div class="status-card">
-            <div class="turn-info">
-                <span>دور بازی: <b id="round-num" style="color:var(--accent-gold)">1 / 8</b></span>
-                <span>نوبت: <b id="current-player" style="color:var(--accent-blue)">کارآگاه</b></span>
-            </div>
-            <div style="font-size: 12px; color: #aaa; margin-top: 5px;" id="phase-desc">
-                یک شخصیت را انتخاب کرده و آن را روی صفحه جابه‌جا کنید.
-            </div>
+        <div class="title-box">
+            <h1>WHITECHAPEL</h1>
+            <small style="color:#aaa;">لندن - ۱۸۸۸</small>
         </div>
 
-        <button class="btn btn-witness" onclick="witnessPhase()">🔍 اعلام وضعیت شاهد (پایان دور)</button>
+        <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;">
+            <div style="font-size: 14px; margin-bottom: 8px;">وضعیت محله:</div>
+            <div style="color: var(--gold); font-size: 13px;">💡 ۴ چراغ روشن | 🌙 ۵ کوچه تاریک</div>
+        </div>
 
-        <div style="margin-top: auto; font-size: 12px; color: #777; line-height: 1.6;">
-            <b>راهنمای بازی:</b><br>
-            • خانه‌های دارای 💡 روشن هستند.<br>
-            • اگر جک در روشنایی باشد، تمام افراد در تاریکی بی‌گناه می‌شوند.<br>
-            • هدف کارآگاه: دستگیری جک قبل از پایان دور ۸.
+        <button class="btn-action" onclick="toggleFog()">🌫️ تغییر وضعیت مه / تاریکی</button>
+
+        <div style="margin-top: auto; font-size: 12px; color: #888; line-height: 1.6;">
+            <b>جزئیات گرافیکی جدید:</b><br>
+            • کاشی‌های سنگ‌فرش با هاله نوری چراغ گازی.<br>
+            • افکت مه لندن (Fog Blur) روی کوچه‌های تاریک.<br>
+            • مهره‌های سه‌بعدی سنگین همراه با سایه واقعی.
         </div>
     </div>
 
-    <!-- بخش اصلی صفحه بازی -->
-    <div class="game-area">
-        <div class="board" id="board"></div>
-
-        <!-- کارت‌های قابل انتخاب برای این دور -->
-        <div class="character-cards" id="cards-container"></div>
-    </div>
-
-    <!-- مدال تعیین هویت جک (فقط در ابتدا) -->
-    <div class="secret-modal" id="secret-modal">
-        <div class="modal-content">
-            <h2 style="color: var(--accent-gold); margin-bottom: 10px;">قرعه‌کشی هویت جک</h2>
-            <p style="margin-bottom: 20px; font-size: 14px;">بازیکن کارآگاه چشمان خود را ببندد! بازیکن جک روی دکمه زیر کلیک کند تا هویت مخفی خود را ببیند.</p>
-            <button class="btn" onclick="revealJackIdentity()">دیدن هویت مخفی 🥷</button>
+    <div class="map-wrapper">
+        <div class="board-container">
+            <div class="grid-map" id="map"></div>
         </div>
     </div>
 
 <script>
-    const BOARD_SIZE = 6;
-    
-    // لیست ۸ شخصیت اصلی بازی مستر جک
-    let characters = [
-        { id: 0, name: "شرلوک", color: "#3498db", x: 1, y: 1, cleared: false },
-        { id: 1, name: "واتسون", color: "#9b59b6", x: 4, y: 1, cleared: false },
-        { id: 2, name: "لسترید", color: "#e67e22", x: 1, y: 4, cleared: false },
-        { id: 3, name: "استلث", color: "#1abc9c", x: 4, y: 4, cleared: false },
-        { id: 4, name: "جفرسون", color: "#f1c40f", x: 2, y: 2, cleared: false },
-        { id: 5, name: "گالی", color: "#e74c3c", x: 3, y: 2, cleared: false },
-        { id: 6, name: "پینکی", color: "#fd79a8", x: 2, y: 3, cleared: false },
-        { id: 7, name: "اسمیث", color: "#00b894", x: 3, y: 3, cleared: false }
+    const GRID_SIZE = 6;
+
+    // داده‌های اولیه نقشه چراغ‌ها
+    const lamps = [
+        { x: 1, y: 0 }, { x: 4, y: 0 },
+        { x: 0, y: 2 }, { x: 5, y: 3 },
+        { x: 1, y: 5 }, { x: 4, y: 5 }
     ];
 
-    // نقشه چراغ‌های گازی روی صفحه (true = روشن)
-    let lights = [
-        [false, true,  false, false, true,  false],
-        [false, false, false, false, false, false],
-        [true,  false, false, false, false, true ],
-        [true,  false, false, false, false, true ],
-        [false, false, false, false, false, false],
-        [false, true,  false, false, true,  false]
+    // شخصیت‌ها همراه با پرتره و رنگ اختصاصی
+    const characters = [
+        { name: "شرلوک", color: "linear-gradient(135deg, #2980b9, #2c3e50)", x: 1, y: 1 },
+        { name: "واتسون", color: "linear-gradient(135deg, #8e44ad, #2c3e50)", x: 4, y: 1 },
+        { name: "لسترید", color: "linear-gradient(135deg, #d35400, #2c3e50)", x: 1, y: 4 },
+        { name: "استلث", color: "linear-gradient(135deg, #16a085, #2c3e50)", x: 4, y: 4 },
+        { name: "جفرسون", color: "linear-gradient(135deg, #f39c12, #2c3e50)", x: 2, y: 2 },
+        { name: "گالی", color: "linear-gradient(135deg, #c0392b, #2c3e50)", x: 3, y: 3 }
     ];
 
-    let jackCharacter = null;
-    let selectedChar = null;
-    let currentRound = 1;
-    let turnPlayer = 'کارآگاه'; // 'کارآگاه' یا 'جک'
+    let showFog = true;
+    let selectedToken = null;
 
-    // ۱. مقداردهی اولیه صفحه
-    function initGame() {
-        // انتخاب تصادفی یکی از ۸ نفر به عنوان جک
-        jackCharacter = characters[Math.floor(Math.random() * characters.length)];
-        renderBoard();
-        renderCards();
-    }
+    function buildMap() {
+        const mapEl = document.getElementById('map');
+        mapEl.innerHTML = '';
 
-    function revealJackIdentity() {
-        alert(`🥷 هویت مخفی شما: ${jackCharacter.name}\n\nاین راز را پنهان نگه دارید!`);
-        document.getElementById('secret-modal').style.display = 'none';
-    }
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                const isLamp = lamps.some(l => l.x === c && l.y === r);
+                const tile = document.createElement('div');
+                tile.className = `tile ${isLamp ? 'lamp-lit' : (showFog ? 'foggy' : '')}`;
 
-    // ۲. رسم صفحه و مهره‌ها
-    function renderBoard() {
-        const boardEl = document.getElementById('board');
-        boardEl.innerHTML = '';
-
-        for (let r = 0; r < BOARD_SIZE; r++) {
-            for (let c = 0; c < BOARD_SIZE; c++) {
-                const cell = document.createElement('div');
-                cell.className = `cell ${lights[r][c] ? 'lit' : ''}`;
-                cell.dataset.x = c;
-                cell.dataset.y = r;
-
-                if (lights[r][c]) {
-                    cell.innerHTML += `<span class="lamp-icon">💡</span>`;
+                if (isLamp) {
+                    const lampEl = document.createElement('div');
+                    lampEl.className = 'gas-lamp';
+                    tile.appendChild(lampEl);
                 }
 
-                // قرار دادن مهره شخصیت در خانه مربوطه
-                const charOnCell = characters.find(ch => ch.x === c && ch.y === r);
-                if (charOnCell) {
+                // چک کردن حضور شخصیت
+                const char = characters.find(ch => ch.x === c && ch.y === r);
+                if (char) {
                     const token = document.createElement('div');
-                    token.className = `token ${charOnCell.cleared ? 'cleared' : ''} ${selectedChar === charOnCell ? 'selected' : ''}`;
-                    token.style.backgroundColor = charOnCell.color;
-                    token.innerText = charOnCell.name;
+                    token.className = `character-token ${selectedToken === char ? 'selected' : ''}`;
+                    token.style.background = char.color;
+                    token.innerText = char.name;
                     token.onclick = (e) => {
                         e.stopPropagation();
-                        selectCharacter(charOnCell);
+                        selectedToken = char;
+                        buildMap();
                     };
-                    cell.appendChild(token);
+                    tile.appendChild(token);
                 }
 
-                cell.onclick = () => moveSelectedCharacter(c, r);
-                boardEl.appendChild(cell);
+                tile.onclick = () => {
+                    if (selectedToken) {
+                        selectedToken.x = c;
+                        selectedToken.y = r;
+                        selectedToken = null;
+                        buildMap();
+                    }
+                };
+
+                mapEl.appendChild(tile);
             }
         }
     }
 
-    // ۳. انتخاب و جابه‌جایی شخصیت
-    function selectCharacter(char) {
-        selectedChar = char;
-        renderBoard();
+    function toggleFog() {
+        showFog = !showFog;
+        buildMap();
     }
 
-    function moveSelectedCharacter(targetX, targetY) {
-        if (!selectedChar) return;
-
-        // محاسبه فاصله (حرکت حداکثر ۳ خانه)
-        const distance = Math.abs(selectedChar.x - targetX) + Math.abs(selectedChar.y - targetY);
-        if (distance > 3) {
-            alert("حداکثر مسافت مجاز برای جابه‌جایی ۳ خانه است!");
-            return;
-        }
-
-        selectedChar.x = targetX;
-        selectedChar.y = targetY;
-        selectedChar = null;
-        
-        switchTurn();
-        renderBoard();
-    }
-
-    function switchTurn() {
-        turnPlayer = (turnPlayer === 'کارآگاه') ? 'جک' : 'کارآگاه';
-        document.getElementById('current-player').innerText = turnPlayer;
-        document.getElementById('current-player').style.color = turnPlayer === 'کارآگاه' ? 'var(--accent-blue)' : 'var(--accent-red)';
-    }
-
-    // ۴. کارت‌های شخصیت در پایین
-    function renderCards() {
-        const container = document.getElementById('cards-container');
-        container.innerHTML = '';
-        characters.slice(0, 4).forEach(char => {
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.innerHTML = `<div style="width:12px; height:12px; background:${char.color}; border-radius:50%; margin-bottom:5px;"></div><b>${char.name}</b>`;
-            card.onclick = () => selectCharacter(char);
-            container.appendChild(card);
-        });
-    }
-
-    // ۵. فاز شاهد (Witness Phase) - مکانیزم اصلی استنتاج مستر جک
-    function witnessPhase() {
-        // آیا جک در خانه روشن است یا تاریک؟
-        const jackIsLit = lights[jackCharacter.y][jackCharacter.x];
-
-        // بررسی مجاورت جک با سایر شخصیت‌ها (اگر کنار کسی باشد هم روشن محسوب می‌شود)
-        let jackHasNeighbor = characters.some(c => 
-            c.id !== jackCharacter.id && 
-            Math.abs(c.x - jackCharacter.x) <= 1 && 
-            Math.abs(c.y - jackCharacter.y) <= 1
-        );
-
-        const isJackVisible = jackIsLit || jackHasNeighbor;
-
-        alert(isJackVisible ? "📣 جک اعلام کرد: من در «روشنایی» هستم!" : "📣 جک اعلام کرد: من در «تاریکی» هستم!");
-
-        // تبرئه کردن خودکار متهمان
-        characters.forEach(c => {
-            const cIsLit = lights[c.y][c.x];
-            const cHasNeighbor = characters.some(other => 
-                other.id !== c.id && 
-                Math.abs(other.x - c.x) <= 1 && 
-                Math.abs(other.y - c.y) <= 1
-            );
-            const cVisible = cIsLit || cHasNeighbor;
-
-            if (isJackVisible && !cVisible) {
-                c.cleared = true; // اگر جک دیده می‌شود، تمام ناپدیدها بی‌گناهند
-            } else if (!isJackVisible && cVisible) {
-                c.cleared = true; // اگر جک دیده نمی‌شود، تمام افراد در روشنایی بی‌گناهند
-            }
-        });
-
-        currentRound++;
-        if (currentRound > 8) {
-            alert("🎉 بازی تمام شد! جک موفق شد ۸ دور مخفی بماند و فرار کند (برد جک).");
-            location.reload();
-            return;
-        }
-
-        document.getElementById('round-num').innerText = `${currentRound} / 8`;
-        renderBoard();
-    }
-
-    // شروع اولیه
-    initGame();
+    buildMap();
 </script>
 </body>
 </html>
