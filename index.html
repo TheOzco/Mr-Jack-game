@@ -1,42 +1,199 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مستر جک - نسخه Phaser.js</title>
-    <!-- موتور بازی‌سازی Phaser 3 -->
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
-    <!-- کتابخانه آنلاین -->
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مدیریت بیماران دندان‌پزشکی</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div id="ui-layer">
-        <div class="panel">
-            <h2>🕵️‍♂️ مستر جک (وایت‌چپل)</h2>
-            <div id="conn-status">در حال اتصال...</div>
-            <div id="my-id-box">کد شما: <span id="my-id">-</span></div>
-            
-            <hr>
-            
-            <input type="text" id="target-id" placeholder="کد حریف...">
-            <button onclick="connectPeer()">اتصال به حریف</button>
+<div class="app">
 
-            <hr>
-
-            <div class="info-box">
-                <div>دور: <b id="round-txt">1 / 8</b></div>
-                <div>نوبت: <b id="turn-txt">کارآگاه</b></div>
-            </div>
-
-            <button id="witness-btn" class="btn-red" onclick="triggerWitness()">📣 فاز شاهد (پایان دور)</button>
-        </div>
+  <!-- Header -->
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M24 6c-4.5 0-7 2.2-9.5 2.2-3 0-5.5 2.6-5.5 7.2 0 6 1.8 12.4 3.6 17.4 1 2.8 1.9 6.2 4.4 6.2 2.3 0 2.6-4.2 3.1-7.6.4-2.6.9-4.8 3.9-4.8s3.5 2.2 3.9 4.8c.5 3.4.8 7.6 3.1 7.6 2.5 0 3.4-3.4 4.4-6.2 1.8-5 3.6-11.4 3.6-17.4 0-4.6-2.5-7.2-5.5-7.2C31 8.2 28.5 6 24 6z" fill="currentColor"/>
+      </svg>
+      <div class="brand-text">
+        <strong>دندان‌یار</strong>
+        <span>سامانه پرونده و درمان بیماران</span>
+      </div>
     </div>
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="patients">بیماران</button>
+      <button class="tab-btn" data-tab="reports">گزارش مالی</button>
+    </nav>
+  </header>
 
-    <!-- کانتینر اصلی موتور Phaser -->
-    <div id="game-container"></div>
+  <main class="content">
 
-    <script src="game.js"></script>
+    <!-- TAB: PATIENTS LIST -->
+    <section id="tab-patients" class="tab-panel active">
+
+      <div class="panel-grid">
+
+        <!-- Registration card -->
+        <div class="card form-card">
+          <h2>ثبت بیمار جدید</h2>
+          <form id="patient-form">
+            <label>نام و نام خانوادگی
+              <input type="text" id="p-name" required placeholder="مثلاً: علی رضایی">
+            </label>
+            <label>کد ملی
+              <input type="text" id="p-nid" required maxlength="10" placeholder="۱۰ رقم" inputmode="numeric">
+            </label>
+            <label>شماره تلفن
+              <input type="text" id="p-phone" required placeholder="۰۹۱۲..." inputmode="numeric">
+            </label>
+            <button type="submit" class="btn btn-primary">ثبت بیمار</button>
+          </form>
+        </div>
+
+        <!-- List card -->
+        <div class="card list-card">
+          <div class="list-card-head">
+            <h2>لیست بیماران <span id="patient-count" class="count-badge">۰</span></h2>
+            <div class="list-actions">
+              <input type="search" id="patient-search" placeholder="جستجو نام، کد ملی یا تلفن...">
+              <button id="export-excel" class="btn btn-outline">خروجی اکسل</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table id="patients-table">
+              <thead>
+                <tr>
+                  <th>نام</th>
+                  <th>کد ملی</th>
+                  <th>تلفن</th>
+                  <th>جمع درمان‌ها</th>
+                  <th>تاریخ ثبت</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="patients-tbody"></tbody>
+            </table>
+            <p id="patients-empty" class="empty-state" hidden>هنوز بیماری ثبت نشده. اولین بیمار را از فرم کنار ثبت کنید.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB: PATIENT FILE (detail) -->
+    <section id="tab-file" class="tab-panel">
+      <button class="back-link" id="back-to-list">← بازگشت به لیست بیماران</button>
+
+      <div class="patient-header card">
+        <div>
+          <h2 id="file-name">—</h2>
+          <div class="patient-meta">
+            <span id="file-nid"></span>
+            <span id="file-phone"></span>
+          </div>
+        </div>
+        <div class="patient-total">
+          <span>جمع کل درمان‌ها</span>
+          <strong id="file-total">۰ تومان</strong>
+        </div>
+      </div>
+
+      <div class="panel-grid">
+        <div class="card form-card">
+          <h2>ثبت درمان جدید</h2>
+          <form id="treatment-form">
+            <label>تاریخ
+              <input type="date" id="t-date" required>
+            </label>
+            <label>نوع درمان
+              <select id="t-type" required>
+                <option value="">انتخاب کنید</option>
+                <option value="جراحی">جراحی</option>
+                <option value="اندو">اندو</option>
+                <option value="ترمیم">ترمیم</option>
+                <option value="پروتز">پروتز</option>
+                <option value="زیبایی">زیبایی</option>
+              </select>
+            </label>
+            <label>شماره دندان
+              <input type="text" id="t-tooth" placeholder="مثلاً: ۱۴" inputmode="numeric">
+            </label>
+            <label>مبلغ (تومان)
+              <input type="number" id="t-amount" required min="0" placeholder="۰">
+            </label>
+            <button type="submit" class="btn btn-primary">ثبت درمان</button>
+          </form>
+        </div>
+
+        <div class="card list-card">
+          <h2>تاریخچه درمان‌های این بیمار</h2>
+          <div class="table-wrap">
+            <table id="treatments-table">
+              <thead>
+                <tr>
+                  <th>تاریخ</th>
+                  <th>نوع درمان</th>
+                  <th>دندان</th>
+                  <th>مبلغ</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="treatments-tbody"></tbody>
+            </table>
+            <p id="treatments-empty" class="empty-state" hidden>برای این بیمار هنوز درمانی ثبت نشده.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: REPORTS -->
+    <section id="tab-reports" class="tab-panel">
+      <div class="report-controls card">
+        <label>ماه گزارش
+          <input type="month" id="report-month">
+        </label>
+        <div class="report-summary">
+          <div class="summary-box">
+            <span>جمع کل ماه</span>
+            <strong id="month-total">۰ تومان</strong>
+          </div>
+          <div class="summary-box">
+            <span>تعداد درمان‌های ماه</span>
+            <strong id="month-count">۰</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="card list-card">
+        <h2>جمع روزانه (ماه انتخاب‌شده)</h2>
+        <div class="table-wrap">
+          <table id="daily-table">
+            <thead><tr><th>تاریخ</th><th>تعداد درمان</th><th>جمع مبلغ</th></tr></thead>
+            <tbody id="daily-tbody"></tbody>
+          </table>
+          <p id="daily-empty" class="empty-state" hidden>در این ماه درمانی ثبت نشده است.</p>
+        </div>
+      </div>
+
+      <div class="card list-card">
+        <h2>جمع ماهانه (کل تاریخچه)</h2>
+        <div class="table-wrap">
+          <table id="monthly-table">
+            <thead><tr><th>ماه</th><th>تعداد درمان</th><th>جمع مبلغ</th></tr></thead>
+            <tbody id="monthly-tbody"></tbody>
+          </table>
+          <p id="monthly-empty" class="empty-state" hidden>هنوز هیچ درمانی ثبت نشده است.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
